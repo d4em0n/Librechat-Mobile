@@ -10,11 +10,13 @@ import org.junit.Test
 class LegacyUiFrameHostTest {
 
     private val heights = mutableListOf<Int>()
+    private val widths = mutableListOf<Int>()
     private val asked = mutableListOf<String>()
     private var decide: ((Boolean) -> Unit)? = null
     private val out = mutableListOf<String>()
     private val host = LegacyUiFrameHost(
         onHeight = { heights += it },
+        onWidth = { widths += it },
         onMessage = { text, reply ->
             asked += text
             decide = reply
@@ -27,6 +29,25 @@ class LegacyUiFrameHostTest {
         host.onFrameMessage("""{"type":"ui-size-change","payload":{"height":-1}}""")
         host.onFrameMessage("""{"type":"ui-size-change","payload":{}}""")
         assertThat(heights).containsExactly(312)
+        assertThat(widths).containsExactly(300)
+    }
+
+    @Test
+    fun `long and wide resources can resize independently and shrink again`() {
+        host.onFrameMessage("""{"type":"ui-size-change","payload":{"height":4000,"width":960}}""")
+        host.onFrameMessage("""{"type":"ui-size-change","payload":{"height":600}}""")
+        host.onFrameMessage("""{"type":"ui-size-change","payload":{"width":320}}""")
+        assertThat(heights).containsExactly(4000, 600).inOrder()
+        assertThat(widths).containsExactly(960, 320).inOrder()
+    }
+
+    @Test
+    fun `invalid widths do not discard valid heights`() {
+        for (width in listOf("-1", "0", "\"NaN\"", "\"Infinity\"", "null", "{}")) {
+            host.onFrameMessage("""{"type":"ui-size-change","payload":{"height":1800,"width":$width}}""")
+        }
+        assertThat(widths).isEmpty()
+        assertThat(heights).hasSize(6)
     }
 
     @Test

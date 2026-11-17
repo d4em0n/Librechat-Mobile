@@ -25,8 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.mcp.UiResource
@@ -43,15 +41,12 @@ private val FRAME_SHAPE = RoundedCornerShape(12.dp)
 /** Before the resource reports a size; web's iframe has none either, so it is a guess. */
 private val DEFAULT_HEIGHT = 240.dp
 
-/** Upstream `clampAppViewHeight`'s floor; the ceiling is the screen's share below. */
+/** Keep a usable placeholder until the resource reports its content height. */
 private val MIN_HEIGHT = 80.dp
 
 /** Upstream `UIResourceCarousel`'s card size. */
 private val CAROUSEL_CARD_WIDTH = 230.dp
 private val CAROUSEL_CARD_MIN_HEIGHT = 360.dp
-
-/** A resource never claims more of the thread than this share of the window, as inline artifacts. */
-private const val MAX_HEIGHT_FRACTION = 0.7f
 
 /**
  * What one `\ui{…}` marker draws: nothing when `legacyHtmlEnabled` is off or no named resource is a
@@ -93,11 +88,10 @@ internal fun LegacyUiResourceBlock(ids: List<String>, streaming: Boolean, modifi
     }
     val onMessage by rememberUpdatedState(local.onMessage)
     BoxWithConstraints(modifier = modifier) {
-        val cap = (legacyWindowHeight() * MAX_HEIGHT_FRACTION).coerceAtLeast(MIN_HEIGHT)
         val single = resources.singleOrNull()
         if (single != null) {
             key(single.key) {
-                LegacyUiFrame(single, width = maxWidth, minHeight = MIN_HEIGHT, cap = cap, onMessage = onMessage)
+                LegacyUiFrame(single, width = maxWidth, minHeight = MIN_HEIGHT, onMessage = onMessage)
             }
         } else {
             Row(
@@ -110,7 +104,6 @@ internal fun LegacyUiResourceBlock(ids: List<String>, streaming: Boolean, modifi
                             resource,
                             width = CAROUSEL_CARD_WIDTH,
                             minHeight = CAROUSEL_CARD_MIN_HEIGHT,
-                            cap = cap.coerceAtLeast(CAROUSEL_CARD_MIN_HEIGHT),
                             onMessage = onMessage,
                         )
                     }
@@ -125,7 +118,6 @@ private fun LegacyUiFrame(
     resource: UiResource,
     width: Dp,
     minHeight: Dp,
-    cap: Dp,
     onMessage: (String, (Boolean) -> Unit) -> Unit,
 ) {
     val html = remember(resource) { resource.inlineHtml().orEmpty() }
@@ -134,26 +126,31 @@ private fun LegacyUiFrame(
     // its own height.
     key(html) {
         var reported by remember { mutableStateOf<Int?>(null) }
+        var reportedWidth by remember { mutableStateOf<Int?>(null) }
         val host = remember {
-            LegacyUiFrameHost(onHeight = { reported = it }, onMessage = { text, reply -> onMessage(text, reply) })
+            LegacyUiFrameHost(
+                onHeight = { reported = it },
+                onMessage = { text, reply -> onMessage(text, reply) },
+                onWidth = { reportedWidth = it },
+            )
         }
-        val height = (reported?.dp ?: DEFAULT_HEIGHT.coerceAtLeast(minHeight)).coerceIn(minHeight, cap)
-        LegacyUiResourceWebView(
-            page = remember { LegacyUiRelayPage.build(html) },
-            host = host,
-            modifier = Modifier
+        // The thread owns vertical scrolling; only wider-than-pane resources scroll inside a card.
+        val height = (reported?.dp ?: DEFAULT_HEIGHT).coerceAtLeast(minHeight)
+        Box(
+            Modifier
                 .width(width)
-                .height(height)
-                .clip(FRAME_SHAPE),
-        )
+                .clip(FRAME_SHAPE)
+                .horizontalScroll(rememberScrollState()),
+        ) {
+            LegacyUiResourceWebView(
+                page = remember { LegacyUiRelayPage.build(html) },
+                host = host,
+                modifier = Modifier
+                    .width((reportedWidth?.dp ?: width).coerceAtLeast(width))
+                    .height(height),
+            )
+        }
     }
-}
-
-@Composable
-private fun legacyWindowHeight(): Dp {
-    val density = LocalDensity.current
-    val window = LocalWindowInfo.current.containerSize
-    return with(density) { window.height.toDp() }
 }
 
 /** Web's chip is `rounded` (4px). */

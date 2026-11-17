@@ -95,6 +95,7 @@ private fun jsStringify(value: JsonElement?): String = when (value) {
 internal class LegacyUiFrameHost(
     private val onHeight: (cssPx: Int) -> Unit,
     private val onMessage: (text: String, reply: (sent: Boolean) -> Unit) -> Unit,
+    private val onWidth: (cssPx: Int) -> Unit = {},
 ) {
     var send: ((String) -> Unit)? = null
 
@@ -103,6 +104,8 @@ internal class LegacyUiFrameHost(
         val type = (msg["type"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return
         val payload = msg["payload"] as? JsonObject
         if (type == SIZE_CHANGE) {
+            val width = (payload?.get("width") as? JsonPrimitive)?.content?.toDoubleOrNull()
+            if (width != null && width.isFinite() && width > 0) onWidth(width.toInt())
             val height = (payload?.get("height") as? JsonPrimitive)?.content?.toDoubleOrNull() ?: return
             if (height.isFinite() && height > 0) onHeight(height.toInt())
             return
