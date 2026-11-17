@@ -134,22 +134,37 @@ private fun LegacyUiFrame(
                 onWidth = { reportedWidth = it },
             )
         }
-        // The thread owns vertical scrolling; only wider-than-pane resources scroll inside a card.
-        val height = (reported?.dp ?: DEFAULT_HEIGHT).coerceAtLeast(minHeight)
-        Box(
-            Modifier
-                .width(width)
-                .clip(FRAME_SHAPE)
-                .horizontalScroll(rememberScrollState()),
-        ) {
+        LegacyUiFrameViewport(width, minHeight, reported, reportedWidth) { frameModifier ->
             LegacyUiResourceWebView(
                 page = remember { LegacyUiRelayPage.build(html) },
                 host = host,
-                modifier = Modifier
-                    .width((reportedWidth?.dp ?: width).coerceAtLeast(width))
-                    .height(height),
+                modifier = frameModifier,
             )
         }
+    }
+}
+
+/** The thread owns vertical scrolling; only wider-than-pane resources scroll inside a card. */
+@Composable
+internal fun LegacyUiFrameViewport(
+    width: Dp,
+    minHeight: Dp,
+    reportedHeight: Int?,
+    reportedWidth: Int?,
+    modifier: Modifier = Modifier,
+    content: @Composable (Modifier) -> Unit,
+) {
+    Box(
+        modifier
+            .width(width)
+            .clip(FRAME_SHAPE)
+            .horizontalScroll(rememberScrollState()),
+    ) {
+        content(
+            Modifier
+                .width((reportedWidth?.dp ?: width).coerceAtLeast(width))
+                .height((reportedHeight?.dp ?: DEFAULT_HEIGHT).coerceAtLeast(minHeight)),
+        )
     }
 }
 

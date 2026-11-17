@@ -52,8 +52,8 @@ jobs:
           path: ~/.konan
           key: ${{ runner.os }}-konan-${{ hashFiles('gradle/libs.versions.toml') }}
           restore-keys: ${{ runner.os }}-konan-
-      - name: Test real iOS legacy WebView sizing and horizontal scrolling
-        run: ./gradlew :feature:chat:iosSimulatorArm64Test --tests '*LegacyUiResourceBlockIosTest'
+      - name: Test iOS legacy frame sizing and horizontal scrolling
+        run: ./gradlew :feature:chat:iosSimulatorArm64Test --tests '*LegacyUiFrameViewportIosTest'
       - name: Archive unsigned device app
         run: |
           set -euo pipefail
