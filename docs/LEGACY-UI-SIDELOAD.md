@@ -18,6 +18,10 @@ SHA-256 file verifies the IPA. Compose's headless test runner cannot host UIKit
 interop views, so the layout tests use a sized box in place of the WebView.
 WebView rendering and physical iPhone gesture acceptance remain device checks.
 
+The job allows two hours for a cold build (the archive step allows 90 minutes).
+The simulator and test Gradle daemon are stopped before the device Release link
+to free runner memory. Gradle caches are writable on this fork's test branch.
+
 Check a long itinerary all the way to its last item, a wide table sideways, a
 responsive calculator, and map pan/zoom while ordinary thread scrolling still
 works. Also check reopening the conversation and portrait/landscape rotation.
