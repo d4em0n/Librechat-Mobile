@@ -18,6 +18,12 @@ SHA-256 file verifies the IPA. Compose's headless test runner cannot host UIKit
 interop views, so the layout tests use a sized box in place of the WebView.
 WebView rendering and physical iPhone gesture acceptance remain device checks.
 
+The legacy iOS WebView ignores inherited safe-area insets and automatic scroll
+inset adjustment: Compose already clips and positions the inline card. A native
+WebView regression moves the card inside a clipped parent and checks that its
+content insets stay zero. Retest both calculator footer links when scrolling in
+both directions, alongside the long itinerary.
+
 The job allows two hours for a cold build (the archive step allows 90 minutes).
 The simulator and test Gradle daemon are stopped before the device Release link
 to free runner memory. Gradle caches are writable on this fork's test branch.

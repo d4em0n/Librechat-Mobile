@@ -6,10 +6,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.UIKitView
+import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.cValue
+import kotlinx.cinterop.readValue
 import platform.Foundation.NSURL
 import platform.UIKit.UIColor
+import platform.UIKit.UIEdgeInsets
+import platform.UIKit.UIEdgeInsetsZero
+import platform.UIKit.UIScrollViewContentInsetAdjustmentNever
 import platform.WebKit.WKContentWorld
 import platform.WebKit.WKNavigationAction
 import platform.WebKit.WKNavigationActionPolicy
@@ -57,11 +62,10 @@ internal actual fun LegacyUiResourceWebView(page: LegacyUiPage, host: LegacyUiFr
                 defaultWebpagePreferences.allowsContentJavaScript = true
                 websiteDataStore = WKWebsiteDataStore.nonPersistentDataStore()
             }
-            val webView = WKWebView(frame = cValue { }, configuration = config)
+            val webView = LegacyInlineWebView(config)
             webView.setOpaque(false)
             webView.backgroundColor = background
             webView.scrollView.backgroundColor = background
-            webView.scrollView.scrollEnabled = false
             webView.navigationDelegate = navigation
             host.send = { raw ->
                 webView.evaluateJavaScript(
@@ -86,6 +90,18 @@ internal actual fun LegacyUiResourceWebView(page: LegacyUiPage, host: LegacyUiFr
             webView.navigationDelegate = null
         },
     )
+}
+
+/** Compose clips and scrolls the card; UIKit must not inset its HTML again as the card moves. */
+@OptIn(ExperimentalForeignApi::class)
+internal class LegacyInlineWebView(configuration: WKWebViewConfiguration) :
+    WKWebView(frame = cValue { }, configuration = configuration) {
+    init {
+        scrollView.scrollEnabled = false
+        scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever
+    }
+
+    override fun safeAreaInsets(): CValue<UIEdgeInsets> = UIEdgeInsetsZero.readValue()
 }
 
 private class LegacyFrameMessageHandler(private val host: LegacyUiFrameHost) : NSObject(), WKScriptMessageHandlerProtocol {

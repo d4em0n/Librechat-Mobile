@@ -57,7 +57,10 @@ jobs:
           key: ${{ runner.os }}-konan-${{ hashFiles('gradle/libs.versions.toml') }}
           restore-keys: ${{ runner.os }}-konan-
       - name: Test iOS legacy frame sizing and horizontal scrolling
-        run: ./gradlew :feature:chat:iosSimulatorArm64Test --tests '*LegacyUiFrameViewportIosTest'
+        run: >-
+          ./gradlew :feature:chat:iosSimulatorArm64Test
+          --tests '*LegacyUiFrameViewportIosTest'
+          --tests '*LegacyInlineWebViewIosTest'
       - name: Free simulator resources before device archive
         run: |
           xcrun simctl shutdown all
