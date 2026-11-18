@@ -14,7 +14,7 @@ import platform.Foundation.NSURL
 import platform.UIKit.UIColor
 import platform.UIKit.UIEdgeInsets
 import platform.UIKit.UIEdgeInsetsZero
-import platform.UIKit.UIScrollViewContentInsetAdjustmentNever
+import platform.UIKit.UIScrollViewContentInsetAdjustmentBehavior.UIScrollViewContentInsetAdjustmentNever
 import platform.WebKit.WKContentWorld
 import platform.WebKit.WKNavigationAction
 import platform.WebKit.WKNavigationActionPolicy
